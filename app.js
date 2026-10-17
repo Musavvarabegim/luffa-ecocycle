@@ -1,49 +1,122 @@
-const ids = ["units", "price", "variable", "fixed", "investment", "sellRate"];
-const el = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
-const money = value => new Intl.NumberFormat("uz-UZ", { maximumFractionDigits: 0 }).format(Math.round(value)) + " so‘m";
-const number = id => Math.max(0, Number(el[id].value) || 0);
+/* Luffa EcoCycle: accessible navigation + transparent planning calculator */
+(() => {
+  "use strict";
 
-function calculate() {
-  const plannedUnits = number("units");
-  const price = number("price");
-  const variableCost = number("variable");
-  const fixedCost = number("fixed");
-  const investment = number("investment");
-  const sellRate = Math.min(100, number("sellRate")) / 100;
-  const soldUnits = plannedUnits * sellRate;
-  const revenue = soldUnits * price;
-  const totalVariable = soldUnits * variableCost;
-  const expenses = totalVariable + fixedCost;
-  const profit = revenue - expenses;
-  const contribution = price - variableCost;
-  const breakEven = contribution > 0 ? Math.ceil(fixedCost / contribution) : null;
-  const payback = profit > 0 && investment > 0 ? investment / profit : null;
+  const menuToggle = document.getElementById("menuToggle");
+  const nav = document.getElementById("mainNav");
 
-  document.getElementById("revenue").textContent = money(revenue);
-  document.getElementById("expenses").textContent = money(expenses);
-  document.getElementById("profit").textContent = money(profit);
-  document.getElementById("profit").style.color = profit >= 0 ? "#31563e" : "#a94435";
-  document.getElementById("profitCaption").textContent = profit >= 0 ? "Soddalashtirilgan operatsion natija" : "Xarajatlar tushumdan yuqori";
-  document.getElementById("breakEven").textContent = breakEven === null ? "Hisoblab bo‘lmaydi" : `${new Intl.NumberFormat("uz-UZ").format(breakEven)} dona`;
-  document.getElementById("payback").textContent = payback === null ? "Hozircha aniqlanmaydi" : `${payback.toFixed(1)} oy`;
-  document.getElementById("paybackNote").textContent = payback === null ? "Musbat oylik natija va boshlang‘ich sarmoya talab qilinadi." : "Soddalashtirilgan hisob; mavsumiylik va soliqlar kiritilmagan.";
-  document.getElementById("calcStatus").textContent = `Hisoblangan sotuv: ${new Intl.NumberFormat("uz-UZ").format(Math.round(soldUnits))} dona/oy. Sotuv ulushi ${Math.round(sellRate * 100)}% deb olindi.`;
-}
-ids.forEach(id => el[id].addEventListener("input", calculate));
-document.getElementById("resetCalc").addEventListener("click", () => {
-  const defaults = {units:500, price:18000, variable:6500, fixed:4500000, investment:100000000, sellRate:85};
-  Object.entries(defaults).forEach(([id, value]) => el[id].value = value);
+  if (menuToggle && nav) {
+    menuToggle.addEventListener("click", () => {
+      const isOpen = nav.classList.toggle("open");
+      menuToggle.setAttribute("aria-expanded", String(isOpen));
+      menuToggle.setAttribute("aria-label", isOpen ? "Navigatsiyani yopish" : "Navigatsiyani ochish");
+    });
+    nav.querySelectorAll("a").forEach(link => link.addEventListener("click", () => {
+      nav.classList.remove("open");
+      menuToggle.setAttribute("aria-expanded", "false");
+      menuToggle.setAttribute("aria-label", "Navigatsiyani ochish");
+    }));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        nav.classList.remove("open");
+        menuToggle.setAttribute("aria-expanded", "false");
+      }
+    });
+  }
+
+  const ids = ["units", "sellRate", "price", "variable", "labor", "overhead", "selling", "investment"];
+  const fields = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
+  const fmt = value => new Intl.NumberFormat("uz-UZ", {
+    maximumFractionDigits: 0
+  }).format(Math.round(value)) + " so‘m";
+  const number = id => {
+    const field = fields[id];
+    if (!field) return 0;
+    const value = Number(field.value);
+    return Number.isFinite(value) ? Math.max(0, value) : 0;
+  };
+
+  function calculate() {
+    if (!fields.units) return;
+
+    const plannedUnits = number("units");
+    const sellRate = Math.min(100, number("sellRate")) / 100;
+    const price = number("price");
+    const variableCost = number("variable");
+    const labor = number("labor");
+    const overhead = number("overhead");
+    const selling = number("selling");
+    const investment = number("investment");
+
+    const soldUnits = plannedUnits * sellRate;
+    const revenue = soldUnits * price;
+    const variableTotal = soldUnits * variableCost;
+    const fixedTotal = labor + overhead + selling;
+    const profit = revenue - variableTotal - fixedTotal;
+    const contribution = price - variableCost;
+    const breakEven = contribution > 0 ? Math.ceil(fixedTotal / contribution) : null;
+    const payback = profit > 0 && investment > 0 ? investment / profit : null;
+
+    document.getElementById("assumptionLine").textContent =
+      `Sotuv: ${new Intl.NumberFormat("uz-UZ", {maximumFractionDigits: 1}).format(soldUnits)} dona/oy. Bu rejalashtirish taxmini.`;
+    document.getElementById("revenue").textContent = fmt(revenue);
+    document.getElementById("variableTotal").textContent = fmt(variableTotal);
+    document.getElementById("fixedTotal").textContent = fmt(fixedTotal);
+
+    const profitEl = document.getElementById("profit");
+    const profitCard = profitEl.closest(".result");
+    profitEl.textContent = (profit < 0 ? "−" : "") + fmt(Math.abs(profit));
+    profitCard.classList.toggle("negative", profit < 0);
+    document.getElementById("profitNote").textContent =
+      profit < 0 ? "Zarar: oylik xarajatlar tushumdan yuqori" : "Soliq va moliyalashtirishdan oldin";
+
+    document.getElementById("breakEven").textContent =
+      contribution <= 0 ? "Hisoblab bo‘lmaydi" : `${new Intl.NumberFormat("uz-UZ").format(breakEven)} dona`;
+    document.getElementById("breakEvenNote").textContent =
+      contribution <= 0 ? "Narx dona o‘zgaruvchan xarajatidan yuqori bo‘lishi kerak" :
+      breakEven > soldUnits ? "Rejalashtirilgan sotuv zararsizlik nuqtasiga yetmaydi" :
+      "Rejalashtirilgan sotuv zararsizlik nuqtasiga yetadi";
+
+    document.getElementById("payback").textContent =
+      payback === null ? "Hozircha yo‘q" : `${payback.toFixed(1)} oy`;
+    document.getElementById("paybackNote").textContent =
+      payback === null ? "Musbat oylik natija va sarmoya kiritilishi kerak" :
+      "Soddalashtirilgan qoplanish; mavsumiylik va soliq hisobga olinmagan";
+  }
+
+  ids.forEach(id => {
+    if (fields[id]) {
+      fields[id].addEventListener("input", calculate);
+      fields[id].addEventListener("change", () => {
+        const min = Number(fields[id].min || 0);
+        const max = fields[id].max === "" ? Infinity : Number(fields[id].max);
+        let value = Number(fields[id].value);
+        if (!Number.isFinite(value)) value = min;
+        fields[id].value = Math.min(max, Math.max(min, value));
+        calculate();
+      });
+    }
+  });
+
+  const reset = document.getElementById("resetCalc");
+  if (reset) {
+    reset.addEventListener("click", () => {
+      const defaults = {
+        units: 500, sellRate: 80, price: 18000, variable: 6500,
+        labor: 3000000, overhead: 1000000, selling: 500000,
+        investment: 100000000
+      };
+      Object.entries(defaults).forEach(([id, value]) => {
+        if (fields[id]) fields[id].value = value;
+      });
+      calculate();
+    });
+  }
+
+  const year = document.getElementById("year");
+  if (year) year.textContent = new Date().getFullYear();
+
+  // The placeholder contact address is deliberately visible in the page copy.
+  // Replace it with a real project address before publishing.
   calculate();
-});
-const menuToggle = document.getElementById("menuToggle");
-const nav = document.getElementById("mainNav");
-menuToggle.addEventListener("click", () => {
-  const isOpen = nav.classList.toggle("open");
-  menuToggle.setAttribute("aria-expanded", String(isOpen));
-});
-nav.querySelectorAll("a").forEach(link => link.addEventListener("click", () => {
-  nav.classList.remove("open");
-  menuToggle.setAttribute("aria-expanded", "false");
-}));
-document.getElementById("year").textContent = new Date().getFullYear();
-calculate();
+})();
