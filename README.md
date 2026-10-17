@@ -82,3 +82,11 @@ Saytdagi ekin kalendari faqat dastlabki rejalashtirish skeleti. Ekish va hosil y
 ## Kelajakda backend kerak bo‘ladimi?
 
 Hozirgi statik sayt uchun login yoki backend shart emas. Backend faqat buyurtmalarni serverda saqlash, xavfsiz admin paneli, foydalanuvchi hisoblari, inventar yoki to‘lovlar kerak bo‘lganda ko‘rib chiqiladi. Shunda ham parollar, tokenlar yoki maxfiy API kalitlarini HTML/JavaScript ichiga joylashtirmang.
+
+## Real pilot evidence and illustrative external images
+
+- The `assets/luffa-*.jpg` images are the user's own submitted photographs of seedlings, vines, flowers and fruit from the small home-garden pilot.
+- The website now states the user-reported result of **45 finished loofah washcloths** from that small pilot. It is not presented as a 2-hectare yield or independently audited statistic.
+- External product/byproduct images are illustrative references, not Luffa EcoCycle inventory or user-made products. The relevant image cards link to the source page. Before public/commercial launch, check image permissions and replace any image without suitable reuse rights with licensed/owned images.
+- Product directions are separated by stage: bath loofah is the reported pilot product; kitchen scrubber and gift set are proposed product directions; seed saving and composting are potential byproduct pathways to test; seed oil is a longer-term research idea, not an established operation.
+- Do not claim that compost, seed oil, or other byproduct products are already manufactured or sold. Confirm process, safety, cost, and demand before adding them to the active product catalogue.
